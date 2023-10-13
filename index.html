@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>抖音去水印下载</title>
+    <meta name="keywords" content="" />
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap@4.5.2/dist/css/bootstrap.min.css">
+    <!-- toastr CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+</head>
+
+<body>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header text-center">
+                        输入抖音链接
+                    </div>
+                    <div class="card-body">
+                        <form id="videoForm">
+                            <div class="form-group">
+                                <label for="inputField">输入信息:</label>
+                                <input type="text" class="form-control" id="inputField"
+                                    placeholder="输入包含抖音链接的文本，或者是视频ID">
+                            </div>
+                            <div class="form-group text-center">
+                                <button type="submit" class="btn btn-primary" id="submit-one">提交</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="nickname">用户名</label>
+                                <input type="text" class="form-control" id="nickname" readonly style="width:100%;">
+                            </div>
+                            <div class="form-group">
+                                <label for="resultLink">视频标题:(双击复制)</label>
+                                <input type="text" class="form-control" id="resultdesc" readonly style="width:100%;">
+                            </div>
+                            <div class="form-group">
+                                <label for="resultLink">无水印链接:(双击复制)</label>
+                                <input type="text" class="form-control" id="resultLink" readonly style="width:100%;">
+                            </div>
+                        </form>
+                        <div id="errorMsg" class="alert alert-danger" role="alert" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/jquery@3.5.1/dist/jquery.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://unpkg.com/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
+</body>
+<script>
+
+    $(document).ready(function () {
+
+        $("#videoForm").submit(async function (e) {
+            e.preventDefault();
+            const input = $("#inputField").val();
+            var videoIdOrLink = processUserInput(input);
+            console.log(input);
+            var raw = JSON.stringify({
+                "rawUrl": videoIdOrLink
+            });
+            console.log(raw);
+            const opts = {
+                method: 'POST',
+                headers: {
+                    'content-type': 'application/json'
+                },
+                body: raw
+            }
+            // 处理用户输入，尝试获取视频ID或链接
+
+            const response = await fetch("/douyin", opts)
+
+            const data = await response.json()
+            $("#nickname").val(data.author.nickname); // 将无水印链接填充到resultLink输入框
+            $("#resultLink").val(`www.iesdouyin.com/aweme/v1/play/?video_id=${data.video.play_addr.uri}&ratio=1080p&line=0`); // 将无水印链接填充到resultLink输入框
+            $("#resultdesc").val(data.desc); // 将视频标题填充到resultdesc输入框
+
+            console.log(data);
+
+
+        })
+
+    })
+
+    function processUserInput(input) {
+        var matches = input.match(/v\.douyin\.com\/[a-zA-Z0-9]+/);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+
+        matches = input.match(/\d{19}/);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+
+        return null;
+    }
+    // 当用户双击resultLink输入框时，复制其内容
+    $("#resultLink").dblclick(function () {
+        this.select();
+        document.execCommand('copy');
+        toastr.options.timeOut = 2000; // 3秒后消失
+        toastr.options.positionClass = "toast-top-center"; // 设置位置在顶部中间
+        toastr.success('链接已复制到剪贴板!');
+    });
+
+    // 当用户双击resultdesc输入框时，复制其内容
+    $("#resultdesc").dblclick(function () {
+        this.select();
+        document.execCommand('copy');
+        toastr.options.timeOut = 2000; // 3秒后消失
+        toastr.options.positionClass = "toast-top-center"; // 设置位置在顶部中间
+        toastr.success('标题已复制到剪贴板!');
+    });
+</script>
+
+</html>
