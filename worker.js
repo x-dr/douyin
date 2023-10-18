@@ -13,6 +13,7 @@ import page from './index.html';
 export default {
     async fetch(request, env, ctx) {
         const url = new URL(request.url);
+        // console.log(url);
         if (url.pathname == "/") {
 
             return new Response(page, {
@@ -27,18 +28,17 @@ export default {
         } else if (url.pathname == "/douyin") {
             // console.log(request);
             const { rawUrl } = await request.json()
-
-            const res = await getDate(rawUrl);
+            const dd = processUserInput(rawUrl)
+            const res = await getDate(dd);
             // const data = await getDate.json()
             const json = JSON.stringify(res.item_list[0]);
             console.log(json);
             return new Response(json, {
                 headers: {
-                    "content-type": "application/json;charset=UTF-8",
+                    "content-type": "application/json;",
                     "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Credentials": "true",
                     "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Allow-Methods": "*",
+                    "Access-Control-Allow-Methods": "*"
                 },
             })
         }
@@ -104,3 +104,16 @@ async function getRedirectUrl(url) {
 
 
 
+    function processUserInput(input) {
+        var matches = input.match(/v\.douyin\.com\/[a-zA-Z0-9]+/);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+
+        matches = input.match(/\d{19}/);
+        if (matches && matches.length > 0) {
+            return matches[0];
+        }
+
+        return null;
+    }
