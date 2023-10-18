@@ -4,11 +4,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
     <title>抖音去水印下载</title>
-    <meta name="keywords" content="" />
+    <link rel="icon" href="https://lf1-cdn-tos.bytegoofy.com/goofy/ies/douyin_web/public/favicon.ico" type="image/x-icon" />
+    <meta name="keywords" content="抖音去水印" />
     <link rel="stylesheet" href="https://unpkg.com/bootstrap@4.5.2/dist/css/bootstrap.min.css">
     <!-- toastr CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/css/toastr.min.css">
+    <style>
+        .avatar-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .avatar-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+    </style>
 </head>
 
 <body>
@@ -32,18 +47,31 @@
                             </div>
                             <div class="form-group">
                                 <label for="nickname">用户名</label>
-                                <input type="text" class="form-control" id="nickname" readonly style="width:100%;">
+                                <div class="avatar-container">
+                                    <img src="https://lf1-cdn-tos.bytegoofy.com/goofy/ies/douyin_web/public/favicon.ico"
+                                        alt="用户头像" class="avatar-image">
+                                    <input type="text" class="form-control" id="nickname" readonly style="width:100%;">
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label for="resultLink">视频标题:(双击复制)</label>
                                 <input type="text" class="form-control" id="resultdesc" readonly style="width:100%;">
+
                             </div>
+
                             <div class="form-group">
                                 <label for="resultLink">无水印链接:(双击复制)</label>
                                 <input type="text" class="form-control" id="resultLink" readonly style="width:100%;">
+
                             </div>
+
+                            <div class="form-group" id="thumbnail-div">
+
+                            </div>
+                            <!-- <button type="button" class="btn btn-primary" id="downloadBtn">下载视频</button> -->
+
                         </form>
-                        <div id="errorMsg" class="alert alert-danger" role="alert" style="display: none;"></div>
+                        <div id="errorMsg" class="alert alert-danger" role="alert" style="display:none;"></div>
                     </div>
                 </div>
             </div>
@@ -54,73 +82,79 @@
     <script src="https://unpkg.com/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
     <script src="https://unpkg.com/bootstrap@4.5.2/dist/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/js/toastr.min.js"></script>
-</body>
-<script>
+    <script>
+        $(document).ready(function () {
+            $("#videoForm").submit(async function (e) {
+                e.preventDefault();
+                const input = $("#inputField").val();
+                console.log(input);
+                var raw = JSON.stringify({
+                    "rawUrl": input
+                });
+                console.log(raw);
+                const opts = {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    },
+                    body: raw
+                }
 
-    $(document).ready(function () {
+                const response = await fetch("/douyin", opts)
 
-        $("#videoForm").submit(async function (e) {
-            e.preventDefault();
-            const input = $("#inputField").val();
-            var videoIdOrLink = processUserInput(input);
-            console.log(input);
-            var raw = JSON.stringify({
-                "rawUrl": videoIdOrLink
+                const data = await response.json()
+                const videourl = `https://www.iesdouyin.com/aweme/v1/play/?video_id=${data.video.play_addr.uri}&ratio=1080p&line=0`
+                $("#nickname").val(data.author.nickname);
+                $(".avatar-image").attr("src", data.author.avatar_thumb.url_list[0]);
+                $("#resultLink").val(videourl);
+                $("#resultdesc").val(data.desc);
+                const thumbnailUrl = data.video.cover.url_list[0];
+                $("#thumbnail").attr("src", thumbnailUrl);
+
+                if (data && data.video) {
+                    // 添加视频画面截图的元素
+                    $("#thumbnail-div").html(`
+                        <label for="thumbnail">视频画面截图</label>
+                        <a href="${videourl}" id="thumbnail-link">
+                            <img src="${data.video.cover.url_list[0]}" alt="视频画面截图" id="thumbnail" style="width:100%;">
+                        </a>
+
+
+                    `);
+                    $("#thumbnail-div").show(); // 显示 thumbnail-div 元素
+                } else {
+                    $("#thumbnail-div").hide(); // 隐藏 thumbnail-div 元素
+                }
+                $("#downloadBtn").click(function () {
+                    const link = document.createElement('a');
+                    link.href = videourl;
+                    link.download = 'dy.mp4';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                });
+
+                console.log(data);
             });
-            console.log(raw);
-            const opts = {
-                method: 'POST',
-                headers: {
-                    'content-type': 'application/json'
-                },
-                body: raw
-            }
-            // 处理用户输入，尝试获取视频ID或链接
 
-            const response = await fetch("/douyin", opts)
+            $("#resultLink").dblclick(function () {
+                this.select();
+                document.execCommand('copy');
+                toastr.options.timeOut = 2000;
+                toastr.options.positionClass = "toast-top-center";
+                toastr.success('链接已复制到剪贴板!');
+            });
 
-            const data = await response.json()
-            $("#nickname").val(data.author.nickname); // 将无水印链接填充到resultLink输入框
-            $("#resultLink").val(`www.iesdouyin.com/aweme/v1/play/?video_id=${data.video.play_addr.uri}&ratio=1080p&line=0`); // 将无水印链接填充到resultLink输入框
-            $("#resultdesc").val(data.desc); // 将视频标题填充到resultdesc输入框
-
-            console.log(data);
-
-
-        })
-
-    })
-
-    function processUserInput(input) {
-        var matches = input.match(/v\.douyin\.com\/[a-zA-Z0-9]+/);
-        if (matches && matches.length > 0) {
-            return matches[0];
-        }
-
-        matches = input.match(/\d{19}/);
-        if (matches && matches.length > 0) {
-            return matches[0];
-        }
-
-        return null;
-    }
-    // 当用户双击resultLink输入框时，复制其内容
-    $("#resultLink").dblclick(function () {
-        this.select();
-        document.execCommand('copy');
-        toastr.options.timeOut = 2000; // 3秒后消失
-        toastr.options.positionClass = "toast-top-center"; // 设置位置在顶部中间
-        toastr.success('链接已复制到剪贴板!');
-    });
-
-    // 当用户双击resultdesc输入框时，复制其内容
-    $("#resultdesc").dblclick(function () {
-        this.select();
-        document.execCommand('copy');
-        toastr.options.timeOut = 2000; // 3秒后消失
-        toastr.options.positionClass = "toast-top-center"; // 设置位置在顶部中间
-        toastr.success('标题已复制到剪贴板!');
-    });
-</script>
+            $("#resultdesc").dblclick(function () {
+                this.select();
+                document.execCommand('copy');
+                toastr.options.timeOut = 2000;
+                toastr.options.positionClass = "toast-top-center";
+                toastr.success('标题已复制到剪贴板!');
+            });
+        });
+    </script>
 
 </html>
